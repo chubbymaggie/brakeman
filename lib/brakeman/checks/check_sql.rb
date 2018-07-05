@@ -19,7 +19,7 @@ class Brakeman::CheckSQL < Brakeman::BaseCheck
     @sql_targets = [:average, :calculate, :count, :count_by_sql, :delete_all, :destroy_all,
                     :find_by_sql, :maximum, :minimum, :pluck, :sum, :update_all]
     @sql_targets.concat [:from, :group, :having, :joins, :lock, :order, :reorder, :where] if tracker.options[:rails3]
-    @sql_targets << :find_by << :find_by! if tracker.options[:rails4]
+    @sql_targets << :find_by << :find_by! << :not if tracker.options[:rails4]
 
     if version_between?("2.0.0", "3.9.9") or tracker.config.rails_version.nil?
       @sql_targets << :first << :last << :all
@@ -184,7 +184,7 @@ class Brakeman::CheckSQL < Brakeman::BaseCheck
                         else
                           check_find_arguments call.last_arg
                         end
-                      when :where, :having, :find_by, :find_by!
+                      when :where, :having, :find_by, :find_by!, :not
                         check_query_arguments call.arglist
                       when :order, :group, :reorder
                         check_order_arguments call.arglist
@@ -290,7 +290,7 @@ class Brakeman::CheckSQL < Brakeman::BaseCheck
     end
 
     if request_value? arg
-      unless call? arg and params? arg.target and [:permit, :slice].include? arg.method
+      unless call? arg and params? arg.target and [:permit, :slice, :to_h, :to_hash, :symbolize_keys].include? arg.method
         # Model.where(params[:where])
         arg
       end
@@ -404,6 +404,8 @@ class Brakeman::CheckSQL < Brakeman::BaseCheck
       nil
     elsif call? value and value.method == :to_s
       unsafe_string_interp? value.target
+    elsif call? value and safe_literal_target? value
+      nil
     else
       case value.node_type
       when :or
@@ -576,7 +578,7 @@ class Brakeman::CheckSQL < Brakeman::BaseCheck
     :sanitize_sql_for_assignment, :sanitize_sql_for_conditions, :sanitize_sql_hash,
     :sanitize_sql_hash_for_assignment, :sanitize_sql_hash_for_conditions,
     :to_sql, :sanitize, :primary_key, :table_name_prefix, :table_name_suffix,
-    :where_values_hash
+    :where_values_hash, :foreign_key
   ]
 
   def safe_value? exp

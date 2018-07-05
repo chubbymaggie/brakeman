@@ -58,7 +58,11 @@ module Brakeman
         Brakeman::ScannerErubis.new(text, :filename => path).src
       else
         require 'erb'
-        src = ERB.new(text, nil, path).src
+        src = if ERB.instance_method(:initialize).parameters.assoc(:key) # Ruby 2.6+
+          ERB.new(text, trim_mode: path).src
+        else
+          ERB.new(text, nil, path).src
+        end
         src.sub!(/^#.*\n/, '') if Brakeman::Scanner::RUBY_1_9
         src
       end
@@ -93,7 +97,7 @@ module Brakeman
     end
 
     def self.parse_inline_erb tracker, text
-      fp = Brakeman::FileParser.new(nil, nil)
+      fp = Brakeman::FileParser.new(tracker, nil)
       tp = self.new(tracker, fp)
       src = tp.parse_erb '_inline_', text
       type = tp.erubis? ? :erubis : :erb

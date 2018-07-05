@@ -19,14 +19,14 @@ class Brakeman::CheckPermitAttributes < Brakeman::BaseCheck
   end
 
   def check_permit result
+    return unless original? result
+
     call = result[:call]
 
     call.each_arg do |arg|
       if symbol? arg
         if SUSPICIOUS_KEYS.key? arg.value
           warn_on_permit_key result, arg
-        elsif arg.value.match /_id$/
-          warn_on_permit_key result, arg, :medium
         end
       end
     end

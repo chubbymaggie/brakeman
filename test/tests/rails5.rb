@@ -12,8 +12,8 @@ class Rails5Tests < Minitest::Test
     @@expected ||= {
       :controller => 0,
       :model => 0,
-      :template => 9,
-      :generic => 18
+      :template => 10,
+      :generic => 19
     }
   end
 
@@ -57,7 +57,7 @@ class Rails5Tests < Minitest::Test
   end
 
   def test_mass_assignment_permit_medium
-    assert_warning :type => :warning,
+    assert_no_warning :type => :warning,
       :warning_code => 105,
       :fingerprint => "c4c89a39b0a2dc707027f47747312d27308ea219a009e4f0116a759a71ad561b",
       :warning_type => "Mass Assignment",
@@ -261,6 +261,19 @@ class Rails5Tests < Minitest::Test
       :user_input => s(:call, s(:params), :permit, s(:lit, :page), s(:lit, :sort))
   end
 
+  def test_redirect_with_path_on_model
+    assert_no_warning :type => :warning,
+      :warning_code => 18,
+      :fingerprint => "1f0dba58823930667b1fbf060329a5ce7462b517b776d1985da014321f399362",
+      :warning_type => "Redirect",
+      :line => 100,
+      :message => /^Possible\ unprotected\ redirect/,
+      :confidence => 0,
+      :relative_path => "app/controllers/widget_controller.rb",
+      :code => s(:call, nil, :redirect_to, s(:call, s(:call, s(:call, s(:const, :User), :find_by_token, s(:call, s(:params), :[], s(:lit, :session))), :user), :current_path)),
+      :user_input => s(:call, s(:call, s(:call, s(:const, :User), :find_by_token, s(:call, s(:params), :[], s(:lit, :session))), :user), :current_path)
+  end
+
   def test_cross_site_scripting_with_slice
     assert_no_warning :type => :template,
       :warning_code => 4,
@@ -375,6 +388,19 @@ class Rails5Tests < Minitest::Test
       :relative_path => "app/controllers/widget_controller.rb",
       :code => s(:render, :action, s(:call, s(:call, s(:params), :[], s(:lit, :x)), :thing?), s(:hash)),
       :user_input => s(:call, s(:call, s(:params), :[], s(:lit, :x)), :thing?)
+  end
+
+  def test_dynamic_render_path_template_exists
+    assert_no_warning :type => :warning,
+      :warning_code => 15,
+      :fingerprint => "5c250fd85fe088bf628d517af37038fa516acc4b6103ee6d8a15e857079ad434",
+      :warning_type => "Dynamic Render Path",
+      :line => 108,
+      :message => /^Render\ path\ contains\ parameter\ value/,
+      :confidence => 0,
+      :relative_path => "app/controllers/widget_controller.rb",
+      :code => s(:render, :action, s(:call, s(:call, s(:params), :[], s(:lit, :slug)), :to_s), s(:hash)),
+      :user_input => s(:call, s(:call, s(:params), :[], s(:lit, :slug)), :to_s)
   end
 
   def test_render_inline_cookies
@@ -497,7 +523,7 @@ class Rails5Tests < Minitest::Test
       :warning_code => 96,
       :fingerprint => "7feea01d5ef6edbc300e34ecffd304a4d76cf306dbc71712a8340a3ac08b6dad",
       :warning_type => "Cross-Site Scripting",
-      :line => 115,
+      :line => 133,
       :message => /^rails\-html\-sanitizer\ 1\.0\.2\ is\ vulnerable/,
       :confidence => 0,
       :relative_path => "Gemfile.lock",
@@ -509,7 +535,7 @@ class Rails5Tests < Minitest::Test
       :warning_code => 97,
       :fingerprint => "f542035c0310ab2e76ec6dbccace0954f0d7c576d56d8cfcb03d9836f50bc7c9",
       :warning_type => "Cross-Site Scripting",
-      :line => 115,
+      :line => 133,
       :message => /^rails\-html\-sanitizer\ 1\.0\.2\ is\ vulnerable/,
       :confidence => 0,
       :relative_path => "Gemfile.lock",
@@ -592,6 +618,30 @@ class Rails5Tests < Minitest::Test
       :user_input => nil
   end
 
+  def test_cross_site_scripting_loofah_CVE_2018_8048
+    assert_warning :type => :warning,
+      :warning_code => 106,
+      :fingerprint => "cdfb1541fdcc9cdcf0784ce5bd90013dc39316cb822eedea3f03b2521c06137f",
+      :warning_type => "Cross-Site Scripting",
+      :line => 99,
+      :message => /^Loofah\ 2\.0\.3\ is\ vulnerable\ \(CVE\-2018\-804/,
+      :confidence => 0,
+      :relative_path => "Gemfile.lock",
+      :user_input => nil
+  end
+
+  def test_cross_site_scripting_CVE_2018_3741
+    assert_warning :type => :warning,
+      :warning_code => 107,
+      :fingerprint => "3e35a6afcd1a8a14894cf26a7f00d4e895f0583bbc081d45e5bd28c4b541b7e6",
+      :warning_type => "Cross-Site Scripting",
+      :line => 133,
+      :message => /^rails\-html\-sanitizer\ 1\.0\.2\ is\ vulnerable/,
+      :confidence => 0,
+      :relative_path => "Gemfile.lock",
+      :user_input => nil
+  end
+
   def test_dangerous_eval_in_prior_class_method_with_same_name
     assert_warning :type => :warning,
       :warning_code => 13,
@@ -629,11 +679,37 @@ class Rails5Tests < Minitest::Test
       :user_input => s(:call, s(:params), :[], s(:lit, :x))
   end
 
+  def test_cross_site_scripting_sanitize_in_link_to
+    assert_warning :type => :template,
+      :warning_code => 4,
+      :fingerprint => "2247b0928591e951ddb428e97bf4174a36080a196a2f6d6fedd2d7c4428db2a9",
+      :warning_type => "Cross-Site Scripting",
+      :line => 9,
+      :message => /^Potentially\ unsafe\ model\ attribute\ in\ li/,
+      :confidence => 2,
+      :relative_path => "app/views/users/show.html.erb",
+      :code => s(:call, nil, :link_to, s(:call, nil, :image_tag, s(:str, "icons/twitter-gray.svg")), s(:call, nil, :sanitize, s(:call, s(:call, s(:const, :User), :new, s(:call, nil, :user_params)), :home_page)), s(:hash, s(:lit, :target), s(:str, "_blank"))),
+      :user_input => s(:call, s(:call, s(:const, :User), :new, s(:call, nil, :user_params)), :home_page)
+  end
+
   def test_mixed_in_csrf_protection
     assert_no_warning :type => :controller,
       :warning_type => "Cross-Site Request Forgery",
       :line => 1,
       :message => /^'protect_from_forgery'\ should\ be\ called\ /,
       :relative_path => "app/controllers/mixed_controller.rb"
+  end
+
+  def test_unscoped_find
+    assert_no_warning :type => :warning,
+      :warning_code => 82,
+      :fingerprint => "21a836b647ac118baf1a63e5fa4c219f8d600760b05ff9b8927c39a97ebf1dd1",
+      :warning_type => "Unscoped Find",
+      :line => 67,
+      :message => /^Unscoped\ call\ to\ User\#find/,
+      :confidence => 2,
+      :relative_path => "app/controllers/users_controller.rb",
+      :code => s(:call, s(:const, :User), :find, s(:call, s(:params), :[], s(:lit, :id))),
+      :user_input => s(:call, s(:params), :[], s(:lit, :id))
   end
 end

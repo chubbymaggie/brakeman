@@ -127,6 +127,10 @@ module Brakeman::Options
           options[:branch_limit] = limit
         end
 
+        opts.on "--parser-timeout SECONDS", Integer, "Set parse timeout (Default: 10)" do |timeout|
+          options[:parser_timeout] = timeout
+        end
+
         opts.on "-r", "--report-direct", "Only report direct use of untrusted data" do |option|
           options[:check_arguments] = !option
         end
@@ -229,7 +233,11 @@ module Brakeman::Options
         end
 
         opts.on "--[no-]color", "Use ANSI colors in report (Default)" do |color|
-          options[:output_color] = color
+          if color
+            options[:output_color] = :force
+          else
+            options[:output_color] = color
+          end
         end
 
         opts.on "-m", "--routes", "Report controller information" do

@@ -15,7 +15,12 @@ class Brakeman::CheckExecute < Brakeman::BaseCheck
 
   SAFE_VALUES = [s(:const, :RAILS_ROOT),
                   s(:call, s(:const, :Rails), :root),
-                  s(:call, s(:const, :Rails), :env)]
+                  s(:call, s(:const, :Rails), :env),
+                  s(:call, s(:const, :Process), :pid)]
+
+  SHELL_ESCAPES = [:escape, :shellescape, :join]
+
+  SHELLWORDS = s(:const, :Shellwords)
 
   #Check models, controllers, and views for command injection.
   def run_check
@@ -28,7 +33,7 @@ class Brakeman::CheckExecute < Brakeman::BaseCheck
     calls = tracker.find_call :targets => [:IO, :Open3, :Kernel, :'POSIX::Spawn', :Process, nil],
       :methods => [:capture2, :capture2e, :capture3, :exec, :pipeline, :pipeline_r,
         :pipeline_rw, :pipeline_start, :pipeline_w, :popen, :popen2, :popen2e,
-        :popen3, :spawn, :syscall, :system]
+        :popen3, :spawn, :syscall, :system], :nested => true
 
     Brakeman.debug "Processing system calls"
     calls.each do |result|
@@ -127,16 +132,24 @@ class Brakeman::CheckExecute < Brakeman::BaseCheck
       :confidence => confidence
   end
 
+  # This method expects a :dstr or :evstr node
   def dangerous? exp
     exp.each_sexp do |e|
-      next if node_type? e, :lit, :str
-      next if SAFE_VALUES.include? e
-
       if call? e and e.method == :to_s
         e = e.target
       end
 
-      if node_type? e, :or, :evstr, :dstr
+      next if node_type? e, :lit, :str
+      next if SAFE_VALUES.include? e
+      next if shell_escape? e
+
+      if node_type? e, :if
+        # If we're in a conditional, evaluate the `then` and `else` clauses to
+        # see if they're dangerous.
+        if res = dangerous?(e.values[1..-1])
+          return res
+        end
+      elsif node_type? e, :or, :evstr, :dstr
         if res = dangerous?(e)
           return res
         end
@@ -160,5 +173,17 @@ class Brakeman::CheckExecute < Brakeman::BaseCheck
     end
 
     false
+  end
+
+  def shell_escape? exp
+    return false unless call? exp
+
+    if exp.target == SHELLWORDS and SHELL_ESCAPES.include? exp.method
+      true
+    elsif exp.method == :shelljoin
+      true
+    else
+      false
+    end
   end
 end

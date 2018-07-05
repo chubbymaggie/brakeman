@@ -114,6 +114,8 @@ class Brakeman::ControllerAliasProcessor < Brakeman::AliasProcessor
 
     if method == :head
       @rendered = true
+    elsif exp.target.nil? and method == :template_exists?
+      env[exp.first_arg] = Sexp.new(:lit, :"brakeman:existing_template")
     elsif @tracker.options[:interprocedural] and
       @current_method and (exp.target.nil? or exp.target.node_type == :self)
 
@@ -177,8 +179,11 @@ class Brakeman::ControllerAliasProcessor < Brakeman::AliasProcessor
     # method as the line number
     if line.nil? and controller = @tracker.controllers[@current_class]
       if meth = controller.get_method(@current_method)
-        line = meth[:src] && meth[:src].last && meth[:src].last.line
-        line += 1
+        if line = meth[:src] && meth[:src].last && meth[:src].last.line
+          line += 1
+        else
+          line = 1
+        end
       end
     end
 

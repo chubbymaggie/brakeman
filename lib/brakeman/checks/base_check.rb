@@ -62,12 +62,8 @@ class Brakeman::BaseCheck < Brakeman::SexpProcessor
   #Default Sexp processing. Iterates over each value in the Sexp
   #and processes them if they are also Sexps.
   def process_default exp
-    exp.each_with_index do |e, _i|
-      if sexp? e
-        process e
-      else
-        e
-      end
+    exp.each do |e|
+      process e if sexp? e
     end
 
     exp
@@ -123,7 +119,10 @@ class Brakeman::BaseCheck < Brakeman::SexpProcessor
 
   #Does not actually process string interpolation, but notes that it occurred.
   def process_dstr exp
-    @string_interp = Match.new(:interp, exp)
+    unless @string_interp # don't overwrite existing value
+      @string_interp = Match.new(:interp, exp)
+    end
+
     process_default exp
   end
 

@@ -1,4 +1,58 @@
-# Unreleased
+# 4.3.1
+
+* Ignore `Object#freeze`, use the target instead
+* Ignore `foreign_key` calls in SQL
+* Handle `included` calls outside of classes/modules
+* Add `:BRAKEMAN_SAFE_LITERAL` to represent known-safe literals
+* Handle `Array#map` and `Array#each` over literal arrays
+* Use safe literal when accessing literal hash with unknown key
+* Avoid deprecated use of ERB in Ruby 2.6 (Koichi ITO)
+* Allow `symbolize_keys` to be called on `params` in SQL (Jacob Evelyn)
+* Improve handling of conditionals in shell commands (Jacob Evelyn)
+* Fix error when setting line number in implicit renders
+
+# 4.3.0
+
+* Check exec-type calls even if they are targets
+* Convert `Array#join` to string interpolation
+* `BaseCheck#include_interp?` should return first string interpolation
+* Add `--parser-timeout` option
+* Track parent calls in CallIndex
+* Warn about dangerous `link_to` href with `sanitize()`
+* Ignore `params#to_h` and `params#to_hash` in SQL checks
+* Change "".freeze to just ""
+* Ignore `Process.pid` in system calls
+* Index Kernel#\` calls even if they are targets
+* Code Climate: omit leading dot from `only_files` (Todd Mazierski)
+* `--color` can be used to force color output
+* Fix reported line numbers for CVE-2018-3741 and CVE-2018-8048
+
+# 4.2.1
+
+* Add warning for CVE-2018-3741
+* Add warning for CVE-2018-8048
+* Scan `app/jobs/` directory
+* Handle `template_exists?` in controllers
+
+# 4.2.0
+
+* Avoid warning about symbol DoS on `Model#attributes`
+* Avoid warning about open redirects with model methods ending with `_path`
+* Avoid warning about command injection with `Shellwords.escape`
+* Use ivars from `initialize` in libraries
+* `Sexp#body=` can accept `:rlist` from `Sexp#body_list`
+* Update RubyParser to 3.11.0
+* Fix multiple assignment of globals
+* Warn about SQL injection in `not`
+* Exclude template folders in `lib/` (kru0096)
+* Handle ERb use of `String#<<` method for Ruby 2.5 (Pocke)
+
+# 4.1.1
+
+* Remove check for use of `permit` with `*_id` keys
+* Avoid duplicate warnings about permitted attributes
+
+# 4.1.0
 
 * Process models as root sexp instead of each sexp
 * Avoid CSRF warning in Rails 5.2 default config
